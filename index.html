@@ -17,15 +17,9 @@
       
       if (s.startsWith("55")) s = s.slice(2);
     
-      if (s.startsWith("031")) {
-        
-        const rest = s.slice(3);             
-        const ddd = rest.slice(0, 2);        
-        let assinante = rest.slice(2);      
-        if (assinante.length === 8) assinante = "9" + assinante;
-       
-        return ("031" + ddd + assinante).replace(/\D/g, "");
-      }
+      if (s.startsWith("031")) s = s.slice(3);
+      
+      if (s.startsWith("31")) s = s.slice(2);
     
       const ddd = s.slice(0, 2);
       let assinante = s.slice(2);
@@ -33,10 +27,11 @@
       if (assinante.length === 8) assinante = "9" + assinante;
     
       if (ddd === "31") {
-        return (assinante).replace(/\D/g, "");
-      } else {
-        return ("031" + ddd + assinante).replace(/\D/g, "");
+        return assinante;
       }
+  
+      const finalNum = `031${ddd}${assinante}`;
+      return finalNum;
     }
   
     function extractRawNumber(obj) {
