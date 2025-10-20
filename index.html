@@ -12,17 +12,31 @@
     const SIP_DOMAIN = 'pabx.avsti.com.br';
   
     function processNumber(numeroRaw) {
-      let s = String(numeroRaw || '').replace(/\D/g, "");
+      
+      let s = String(numeroRaw || "").replace(/\D/g, "");
+      
       if (s.startsWith("55")) s = s.slice(2);
-      if (s.startsWith("31")) s = s.slice(2);
+    
       if (s.startsWith("031")) {
-        s = s.slice(3);
+        
+        const rest = s.slice(3);             
+        const ddd = rest.slice(0, 2);        
+        let assinante = rest.slice(2);      
+        if (assinante.length === 8) assinante = "9" + assinante;
+       
+        return ("031" + ddd + assinante).replace(/\D/g, "");
       }
-      const ddd = s.slice(0,2) || "";
-      let assinante = s.slice(2) || "";
+    
+      const ddd = s.slice(0, 2);
+      let assinante = s.slice(2);
+    
       if (assinante.length === 8) assinante = "9" + assinante;
-      let numeroFinal = (ddd === '31') ? ddd + assinante : '031' + ddd + assinante;
-      return numeroFinal.replace(/\D/g,'');
+    
+      if (ddd === "31") {
+        return (ddd + assinante).replace(/\D/g, "");
+      } else {
+        return ("031" + ddd + assinante).replace(/\D/g, "");
+      }
     }
   
     function extractRawNumber(obj) {
