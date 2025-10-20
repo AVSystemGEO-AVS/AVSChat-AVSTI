@@ -33,7 +33,7 @@
       if (assinante.length === 8) assinante = "9" + assinante;
     
       if (ddd === "31") {
-        return (ddd + assinante).replace(/\D/g, "");
+        return (assinante).replace(/\D/g, "");
       } else {
         return ("031" + ddd + assinante).replace(/\D/g, "");
       }
