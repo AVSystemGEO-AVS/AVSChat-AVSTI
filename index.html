@@ -136,7 +136,7 @@
               const display = formatDisplay(false); 
               window.WlExtension.confirmDialog({
                 title: 'Confirmar ligação',
-                text: `Deseja ligar para esse número fixo ? ${display}\n(Se for um número celular, aperte *NÃO*)`,
+                text: `Deseja ligar para esse número fixo ? ${display}`,
                 callback: (ok) => {
                   if (ok) {
                     // ligar usando sem 9
@@ -156,7 +156,7 @@
               const display = formatDisplay(true); 
               window.WlExtension.confirmDialog({
                 title: 'Confirmar ligação',
-                text: `Deseja ligar para esse número celular? ${display}\n Se for um número fixo aperte *NÃO*`,
+                text: `Deseja ligar para esse número celular? ${display}`,
                 callback: (ok) => {
                   if (ok) {
                     // ligar usando com 9
