@@ -14,13 +14,18 @@
 
   function processNumber(numeroRaw) {
     let s = String(numeroRaw || "").replace(/\D/g, "");
+    
     if (s.startsWith("55")) s = s.slice(2);
+    
     if (s.startsWith("031")) s = s.slice(3);
+    
     const ddd = s.slice(0, 2);
     let assinante = s.slice(2);
+    
     if (assinante.length === 8 && assinante[0] !== "3") {
       assinante = "9" + assinante;
     }
+    
     if (ddd === "31") {
       return assinante.replace(/\D/g, "");
     } else {
@@ -46,6 +51,7 @@
     } else if (assinante.length === 9 && !useWith9 && assinante.startsWith("9")) {
       assinante = assinante.slice(1);
     }
+    
     if (parsed.ddd === "31") {
       return assinante.replace(/\D/g, "");
     } else {
@@ -55,10 +61,15 @@
 
   function extractRawNumber(obj) {
     if (!obj) return null;
+    
     const keys = ['numero','telefone','phone','phoneNumber','mobile','celular','contactNumber'];
+    
     for (const k of keys) if (obj[k]) return obj[k];
+    
     if (obj.contato) for (const k of keys) if (obj.contato[k]) return obj.contato[k];
+    
     if (typeof obj === 'string') return obj;
+    
     for (const k in obj) {
       try {
         const v = obj[k];
