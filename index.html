@@ -29,7 +29,7 @@
     if (ddd === "31") {
       return assinante.replace(/\D/g, "");
     } else {
-      return (`031${ddd}${assinante}`).replace(/\D/g, "");
+      return (`${ddd}${assinante}`).replace(/\D/g, "");
     }
   }
 
@@ -55,7 +55,7 @@
     if (parsed.ddd === "31") {
       return assinante.replace(/\D/g, "");
     } else {
-      return (`031${parsed.ddd}${assinante}`).replace(/\D/g, "");
+      return (`${parsed.ddd}${assinante}`).replace(/\D/g, "");
     }
   }
 
@@ -136,7 +136,7 @@
               const display = formatDisplay(false); 
               window.WlExtension.confirmDialog({
                 title: 'Confirmar ligação',
-                text: `Deseja ligar para esse número (fixo)? ${display}`,
+                text: `Deseja ligar para esse número fixo ? ${display}\n(Se for um número celular, aperte *NÃO*)`,
                 callback: (ok) => {
                   if (ok) {
                     // ligar usando sem 9
@@ -156,7 +156,7 @@
               const display = formatDisplay(true); 
               window.WlExtension.confirmDialog({
                 title: 'Confirmar ligação',
-                text: `Deseja ligar para esse número (celular)? ${display}`,
+                text: `Deseja ligar para esse número celular? ${display}\n Se for um número fixo aperte *NÃO*`,
                 callback: (ok) => {
                   if (ok) {
                     // ligar usando com 9
