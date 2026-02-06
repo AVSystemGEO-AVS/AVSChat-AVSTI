@@ -3,187 +3,159 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Teste PABX</title>
+  <title>IMPRIMIR</title>
 </head>
 <body>
 
 <script src="https://fileschat.sfo2.cdn.digitaloceanspaces.com/public/libs/wlclient.js"></script>
-  
+
 <script>
-  const SIP_DOMAIN = 'pabx.avsti.com.br';
-
-  function processNumber(numeroRaw) {
-    let s = String(numeroRaw || "").replace(/\D/g, "");
-    
-    if (s.startsWith("55")) s = s.slice(2);
-    
-    if (s.startsWith("031")) s = s.slice(3);
-    
-    const ddd = s.slice(0, 2);
-    let assinante = s.slice(2);
-    
-    if (assinante.length === 8 && assinante[0] !== "3") {
-      assinante = "9" + assinante;
-    }
-    
-    if (ddd === "31") {
-      return assinante.replace(/\D/g, "");
-    } else {
-      return (`${ddd}${assinante}`).replace(/\D/g, "");
-    }
+  function getParam(name) {
+    try { return new URL(window.location.href).searchParams.get(name); }
+    catch (_) { return null; }
   }
 
-  function parseRawForDecision(numeroRaw) {
-    let s = String(numeroRaw || "").replace(/\D/g, "");
-    if (s.startsWith("55")) s = s.slice(2);
-    if (s.startsWith("031")) s = s.slice(3);
-    const ddd = s.slice(0,2) || "";
-    const assinanteOrig = s.slice(2) || ""; 
-    return { ddd, assinanteOrig };
+  function renderModal() {
+    document.body.innerHTML = `
+      <div>
+        <strong>IMPRIMIR</strong>
+        <br><br>
+
+        <button id="btn-hoje">HOJE</button>
+        <button id="btn-anteriores">DIAS ANTERIORES</button>
+
+        <div id="box-data" style="display:none; margin-top:12px;">
+          <div>DIA ESCOLHIDO (DD/MM/AA)</div>
+          <input id="inp-data" placeholder="00/00/00" maxlength="8">
+          <div id="msg" style="margin-top:8px;"></div>
+          <div style="margin-top:10px;">
+            <button id="btn-enviar">ENVIAR</button>
+            <button id="btn-cancelar">CANCELAR</button>
+          </div>
+        </div>
+
+        <div id="box-hoje" style="display:none; margin-top:12px;">
+          <div style="margin-top:10px;">
+            <button id="btn-confirmar-hoje">ENVIAR</button>
+            <button id="btn-cancelar-hoje">CANCELAR</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const btnHoje = document.getElementById("btn-hoje");
+    const btnAnt = document.getElementById("btn-anteriores");
+
+    const boxData = document.getElementById("box-data");
+    const inpData = document.getElementById("inp-data");
+    const msgEl = document.getElementById("msg");
+
+    const boxHoje = document.getElementById("box-hoje");
+
+    function setMsg(t) { if (msgEl) msgEl.textContent = t || ""; }
+
+    function closeCancel() {
+      window.WlExtension.closeModal({ cancelled: true });
+    }
+
+    function normalizeDDMMAA(v) {
+      let s = String(v || "").replace(/[^\d]/g, "").slice(0, 6);
+      if (s.length > 2) s = s.slice(0,2) + "/" + s.slice(2);
+      if (s.length > 5) s = s.slice(0,5) + "/" + s.slice(5);
+      return s;
+    }
+
+    function parseDDMMAA(v) {
+      const m = String(v || "").trim().match(/^(\d{2})\/(\d{2})\/(\d{2})$/);
+      if (!m) return { ok:false, error:"Use 00/00/00 (DD/MM/AA)." };
+
+      const dd = Number(m[1]);
+      const mm = Number(m[2]);
+      const aa = Number(m[3]);
+      const yyyy = 2000 + aa;
+
+      const d = new Date(yyyy, mm - 1, dd);
+      const ok =
+        d.getFullYear() === yyyy &&
+        d.getMonth() === (mm - 1) &&
+        d.getDate() === dd;
+
+      if (!ok) return { ok:false, error:"Data inválida." };
+
+      return { ok:true, short:`${m[1]}/${m[2]}/${m[3]}`, full:`${m[1]}/${m[2]}/${yyyy}` };
+    }
+
+    inpData.addEventListener("input", () => {
+      inpData.value = normalizeDDMMAA(inpData.value);
+      setMsg("");
+    });
+
+    btnHoje.onclick = () => {
+      boxData.style.display = "none";
+      boxHoje.style.display = "block";
+    };
+
+    btnAnt.onclick = () => {
+      boxHoje.style.display = "none";
+      boxData.style.display = "block";
+      setTimeout(() => inpData.focus(), 10);
+    };
+
+    document.getElementById("btn-cancelar").onclick = closeCancel;
+    document.getElementById("btn-cancelar-hoje").onclick = closeCancel;
+
+    document.getElementById("btn-confirmar-hoje").onclick = () => {
+      window.WlExtension.closeModal({ action: "hoje" });
+    };
+
+    document.getElementById("btn-enviar").onclick = () => {
+      const p = parseDDMMAA(inpData.value);
+      if (!p.ok) {
+        setMsg(p.error);
+        return;
+      }
+      window.WlExtension.closeModal({
+        action: "anteriores",
+        data: p.short,   
+        dataFull: p.full 
+      });
+    };
   }
 
-  function buildFinalNumberFromParsed(parsed, useWith9) {
-    
-    let assinante = parsed.assinanteOrig || "";
-    
-    if (assinante.length === 8 && useWith9) {
-      assinante = "9" + assinante;
-    } else if (assinante.length === 9 && !useWith9 && assinante.startsWith("9")) {
-      assinante = assinante.slice(1);
-    }
-    
-    if (parsed.ddd === "31") {
-      return assinante.replace(/\D/g, "");
-    } else {
-      return (`${parsed.ddd}${assinante}`).replace(/\D/g, "");
-    }
-  }
+  function initExtension() {
+    window.WlExtension.initialize({
+      buttons: {
+        "attendance-view": [
+          {
+            icon_url: "https://img.icons8.com/material-sharp/15/000000/print.png",
+            text: "IMPRIMIR",
+            callback: (atendimento) => {
+              const modalUrl = `@EXTENSION_URL?mode=modal`;
 
-  function extractRawNumber(obj) {
-    if (!obj) return null;
-    
-    const keys = ['numero','telefone','phone','phoneNumber','mobile','celular','contactNumber'];
-    
-    for (const k of keys) if (obj[k]) return obj[k];
-    
-    if (obj.contato) for (const k of keys) if (obj.contato[k]) return obj.contato[k];
-    
-    if (typeof obj === 'string') return obj;
-    
-    for (const k in obj) {
-      try {
-        const v = obj[k];
-        if (v && (typeof v === 'string' || typeof v === 'number')) {
-          const digits = String(v).replace(/\D/g,'');
-          if (digits.length >= 8) return v;
-        }
-      } catch(e){}
-    }
-    return null;
-  }
+              window.WlExtension.modal({
+                title: "IMPRIMIR",
+                url: modalUrl,
+                maxWidth: "450px",
+                height: "280px",
+                callback: (ret) => {
+                  if (!ret || ret.cancelled) return;
 
-  function openSipUriWithFallback(sipUri) {
-    try {
-      
-      const a = document.createElement('a');
-      a.href = sipUri;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      setTimeout(() => document.body.removeChild(a), 500);
-    } catch (e) {
-      console.error(e);
-      try { window.location.href = sipUri; } catch(e2){ console.error(e2); }
-    }
-  }
-
-  window.WlExtension.initialize({
-    buttons: {
-      'attendance-view': [
-        {
-          icon_url: 'https://img.icons8.com/?size=15&id=9730&format=png&color=000000',
-          text: 'PABX',
-          callback: (atendimento) => {
-            const raw = extractRawNumber(atendimento) || extractRawNumber(atendimento?.contato);
-            if (!raw) {
-              return window.WlExtension.alert({ message: 'Número não encontrado no atendimento.', variant: 'error' });
-            }
-
-            const parsed = parseRawForDecision(raw);
-            const ddd = parsed.ddd;
-            const assinanteOrig = parsed.assinanteOrig || "";
-
-            const is8 = assinanteOrig.length === 8;
-            const startsWith3 = assinanteOrig.startsWith("3");
-            const isFixed = is8 && startsWith3;   
-            const isMobileCandidate = (is8 && !startsWith3) || (assinanteOrig.length === 9);
-
-            function formatDisplay(useWith9) {
-              const finalNum = buildFinalNumberFromParsed(parsed, useWith9);
-              return finalNum;
-            }
-
-            let defaultUseWith9;
-            if (isFixed) defaultUseWith9 = false;
-            else if (isMobileCandidate) defaultUseWith9 = true;
-            else {              
-              const p = processNumber(raw);              
-              defaultUseWith9 = (p.replace(/^031/, '').length > assinanteOrig.length);
-            }
-
-            if (isFixed) {
-              // pergunta para fixo 
-              const display = formatDisplay(false); 
-              window.WlExtension.confirmDialog({
-                title: 'Confirmar ligação',
-                text: `Deseja ligar para esse número fixo ? ${display}`,
-                callback: (ok) => {
-                  if (ok) {
-                    // ligar usando sem 9
-                    const finalNum = buildFinalNumberFromParsed(parsed, false);
-                    const sipUri = `sip:${finalNum}@${SIP_DOMAIN}`;
-                    openSipUriWithFallback(sipUri);
-                  } else {
-                    // usuário disse NÃO: adiciona 9 e executa
-                    const finalNum = buildFinalNumberFromParsed(parsed, true);
-                    const sipUri = `sip:${finalNum}@${SIP_DOMAIN}`;
-                    openSipUriWithFallback(sipUri);
+                  if (ret.action === "hoje") {
+                    window.WlExtension.alert({ message: "Selecionado: HOJE", variant: "success" });
+                  } else if (ret.action === "anteriores") {
+                    window.WlExtension.alert({ message: `Selecionado: DIAS ANTERIORES (${ret.data})`, variant: "success" });
                   }
                 }
-              });
-            } else if (isMobileCandidate) {
-              // pergunta para celular 
-              const display = formatDisplay(true); 
-              window.WlExtension.confirmDialog({
-                title: 'Confirmar ligação',
-                text: `Deseja ligar para esse número celular? ${display}`,
-                callback: (ok) => {
-                  if (ok) {
-                    // ligar usando com 9
-                    const finalNum = buildFinalNumberFromParsed(parsed, true);
-                    const sipUri = `sip:${finalNum}@${SIP_DOMAIN}`;
-                    openSipUriWithFallback(sipUri);
-                  } else {
-                    // usuário disse NÃO: remove 9 e executa
-                    const finalNum = buildFinalNumberFromParsed(parsed, false);
-                    const sipUri = `sip:${finalNum}@${SIP_DOMAIN}`;
-                    openSipUriWithFallback(sipUri);
-                  }
-                }
-              });
-            } else {
-              const fallbackNum = processNumber(raw);
-              window.WlExtension.confirmDialog({
-                title: 'Confirmar ligação',
-                text: `Deseja ligar para ${fallbackNum}?`,
-                callback: (ok) => { if (ok) openSipUriWithFallback(`sip:${fallbackNum}@${SIP_DOMAIN}`); }
               });
             }
           }
-        }
-      ]
-    }
-  });
+        ]
+      }
+    });
+  }
+
+  if (getParam("mode") === "modal") renderModal();
+  else initExtension();
 </script>
 
 </body>
